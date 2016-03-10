@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x 
 #
 # Parses DHCP options from openvpn to update resolv.conf
 # To use set as 'up' and 'down' script in your openvpn *.conf:
@@ -19,10 +19,10 @@
 
 ## You might need to set the path manually here, i.e.
 RESOLVCONF=/usr/bin/resolvconf
+RESOLV_FILE=/etc/resolv.conf
 
-case $script_type in
 
-up)
+resolvconf_up() {
   for optionname in ${!foreign_option_*} ; do
     option="${!optionname}"
     echo $option
@@ -54,8 +54,56 @@ up)
   done
   #echo -n "$R" | $RESOLVCONF -x -p -a "${dev}"
   echo -n "$R" | $RESOLVCONF -x -a "${dev}.inet"
+}
+
+resolvconf_down() {
+  $RESOLVCONF -d "${dev}.inet"
+}
+
+
+vanilla_up() {
+    cp /etc/resolv.conf /etc/resolv.conf-prevpn
+    sed -i 's/^/#</' $RESOLV_FILE
+
+	for opt in ${!foreign_option_*}
+	do
+        ip=$(echo ${!opt} | perl -ne 'm|dhcp-option\s+DNS\s+(\d+\.\d+\.\d+\.\d+)| && print "$1"' )
+        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+	    then
+            echo nameserver $ip >> $RESOLV_FILE
+	    fi
+    done
+
+}
+
+vanilla_down() {
+	for opt in ${!foreign_option_*}
+	do
+        ip=$(echo ${!opt} | perl -ne 'm|dhcp-option\s+DNS\s+(\d+\.\d+\.\d+\.\d+)| && print "$1"' )
+        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+	    then
+            sed -i "s/nameserver $dns/d"  $RESOLV_FILE
+	    fi
+    done
+    sed -i 's/^#<//' $RESOLV_FILE
+
+}
+
+case $script_type in
+up)
+    if [ -x "$RESOLVCONF" ]
+    then
+        resolvconf_up
+    else
+        vanilla_up
+    fi
   ;;
 down)
-  $RESOLVCONF -d "${dev}.inet"
+    if [ -x "$RESOLVCONF" ]
+    then
+        resolvconf_down
+    else
+        vanilla_down
+    fi
   ;;
 esac
