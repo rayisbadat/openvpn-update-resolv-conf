@@ -77,15 +77,16 @@ vanilla_up() {
 }
 
 vanilla_down() {
-	for opt in ${!foreign_option_*}
-	do
-        ip=$(echo ${!opt} | perl -ne 'm|dhcp-option\s+DNS\s+(\d+\.\d+\.\d+\.\d+)| && print "$1"' )
-        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
-	    then
-            sed -i "s/nameserver $dns/d"  $RESOLV_FILE
-	    fi
-    done
-    sed -i 's/^#<//' $RESOLV_FILE
+    cp /etc/resolv.conf-prevpn /etc/resolv.conf
+#	for opt in ${!foreign_option_*}
+#	do
+#        ip=$(echo ${!opt} | perl -ne 'm|dhcp-option\s+DNS\s+(\d+\.\d+\.\d+\.\d+)| && print "$1"' )
+#        if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+#	    then
+#            sed -i "s/nameserver $dns/d"  $RESOLV_FILE
+#	    fi
+#    done
+#    sed -i 's/^#<//' $RESOLV_FILE
 
 }
 
